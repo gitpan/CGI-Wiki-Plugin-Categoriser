@@ -3,7 +3,7 @@ use strict;
 use CGI::Wiki::Plugin;
 
 use vars qw( $VERSION @ISA );
-$VERSION = '0.01';
+$VERSION = '0.02';
 @ISA = qw( CGI::Wiki::Plugin );
 
 =head1 NAME
@@ -40,6 +40,7 @@ other in terms of categories.
 =item B<new>
 
   my $categoriser = CGI::Wiki::Plugin::Categoriser->new;
+  $wiki->register_plugin( plugin => $categoriser );
 
 =cut
 
@@ -55,18 +56,62 @@ sub new {
   my $isa_pub = $categoriser->in_category( category => "Pubs",
                                            node     => "Red Lion" );
 
-Returns true if the node is in the category, and false otherwise.
+Returns true if the node is in the category, and false otherwise. Note
+that this is B<case-insensitive>, so C<Pubs> is the same category as
+C<pubs>. I might do something to make it plural-insensitive at some
+point too.
 
 =cut
 
 sub in_category {
     my ($self, %args) = @_;
     my @catarr = $self->categories( node => $args{node} );
-    my %categories = map { $_ => 1 } @catarr;
-    return $categories{$args{category}};
+    my %categories = map { lc($_) => 1 } @catarr;
+    return $categories{lc($args{category})};
 }
 
-=back
+=item B<subcategories>
+
+  $wiki->write_node( "Category Pub Food",
+                     "pubs that serve food",
+                     $checksum,
+                     { category => [ "Pubs", "Food", "Category" ] } );
+  my @subcategories = $categoriser->subcategories( category => "Pubs" );
+  # will return ( "Pub Food" )
+
+  # Or if you prefer CamelCase node names:
+  $wiki->write_node( "CategoryPubFood",
+                     "pubs that serve food",
+                     $checksum,
+                     { category => [ "Pubs", "Food", "Category" ] } );
+  my @subcategories = $categoriser->subcategories( category => "Pubs" );
+  # will return ( "PubFood" )
+
+To add a subcategory C<Foo> to a given category C<Bar>, write a node
+called any one of C<Foo>, C<Category Foo>, or C<CategoryFoo> with
+metadata indicating that it's in categories C<Bar> and C<Category>.
+
+Yes, this pays specific attention to the Wiki convention of defining
+categories by prefacing the category name with C<Category> and
+creating a node by that name. If different behaviour is required we
+should probably implement it using an optional argument in the
+constructor.
+
+=cut
+
+sub subcategories {
+    my ($self, %args) = @_;
+    return () unless $args{category};
+    my $datastore = $self->datastore;
+    my %cats = map { $_ => 1 }
+                   $datastore->list_nodes_by_metadata(
+                       metadata_type  => "category",
+                       metadata_value => "Category" );
+    my @in_cat = $datastore->list_nodes_by_metadata(
+                       metadata_type  => "category",
+                       metadata_value => $args{category} );
+    return map { s/^Category\s+//; $_ } grep { $cats{$_} } @in_cat;
+}
 
 =item B<categories>
 
@@ -117,7 +162,7 @@ under the same terms as Perl itself.
 
 =head1 TODO
 
-Subcategories, category hierarchy.
+Improve subcategories, do category hierarchy.
 
 =cut
 

@@ -47,6 +47,14 @@ while ( ($store_name, $store) = each %stores ) {
                          }
                         );
 
+      $wiki->write_node( "Category Pub Food",
+                         "pubs that serve food",
+                         undef,
+                         {
+                             category => [ "Pubs", "Food", "Category" ]
+                         }
+                       );
+
       pass "$store_name test backend primed with test data";
 
     } # end of SKIP

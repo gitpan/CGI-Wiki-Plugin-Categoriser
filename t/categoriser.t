@@ -2,7 +2,7 @@ use strict;
 use CGI::Wiki;
 use CGI::Wiki::TestConfig::Utilities;
 use Test::More tests =>
-  (1 + 5 * $CGI::Wiki::TestConfig::Utilities::num_stores);
+  (1 + 6 * $CGI::Wiki::TestConfig::Utilities::num_stores);
 
 use_ok( "CGI::Wiki::Plugin::Categoriser" );
 
@@ -11,7 +11,7 @@ my %stores = CGI::Wiki::TestConfig::Utilities->stores;
 my ($store_name, $store);
 while ( ($store_name, $store) = each %stores ) {
     SKIP: {
-      skip "$store_name storage backend not configured for testing", 5
+      skip "$store_name storage backend not configured for testing", 6
           unless $store;
 
       print "#\n##### TEST CONFIG: Store: $store_name\n#\n";
@@ -29,6 +29,10 @@ while ( ($store_name, $store) = each %stores ) {
       $isa_pub = $categoriser->in_category( category => "Pubs",
                                             node     => "Ken Livingstone" );
       ok( !$isa_pub, "...and false for things not in the category" );
+
+      $isa_pub = $categoriser->in_category( category => "pubs",
+                                            node     => "Albion" );
+      ok( $isa_pub, "...and is case-insensitive" );
 
       # Test ->categories
       my @categories = $categoriser->categories( node => "Calthorpe Arms" );
